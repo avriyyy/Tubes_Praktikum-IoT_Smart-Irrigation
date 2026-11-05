@@ -53,11 +53,10 @@ Pompa air 5V dicatu dari sumber 5V eksternal melalui kontak COM–NO relay, sehi
 .
 ├── README.md
 ├── docs/
-│   ├── laporan-progress-1.docx   # laporan progress 1 (file kumpul)
 │   ├── laporan-progress-1.pdf
 │   └── img/
-│       ├── diagram_blok.png
-│       └── flowchart.png
+│       ├── diagram-blok_progress1.png
+│       └── flowchart_progress1.png
 ├── firmware/                     # sketch ESP32 (menyusul, progress 2)
 └── dashboard/                    # dashboard web Laravel (menyusul)
 ```
@@ -68,6 +67,6 @@ Pompa air 5V dicatu dari sumber 5V eksternal melalui kontak COM–NO relay, sehi
 
 ## Status
 
-- [x] Progress 1: konsep, skematik Cirkit, diagram blok + flowchart, laporan
-- [ ] Progress 2: firmware ESP32, MQTT + PostgreSQL live
+- [x] Progress 1: konsep, diagram blok + flowchart, laporan
+- [ ] Progress 2: skematik, firmware ESP32, MQTT + PostgreSQL
 - [ ] Final: rakit fisik, dashboard web Laravel, notifikasi Telegram, demo
