@@ -1,9 +1,203 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --color-mist: #eef3ec;
+    --color-pine: #1e2b23;
+    --color-moss: #4c5f53;
+    --color-leaf-100: #dcebe0;
+    --color-leaf-600: #2e7d46;
+    --color-leaf-700: #256b3a;
+    --color-clay-500: #a06a35;
+    --color-clay-700: #7c4f22;
+}
+
+:focus-visible {
+    outline: 2px solid var(--color-leaf-600);
+    outline-offset: 2px;
+}
+
+body {
+    background:
+        radial-gradient(1100px 550px at 12% -8%, rgba(164, 220, 150, 0.5), transparent 60%),
+        radial-gradient(1000px 700px at 108% 18%, rgba(104, 146, 85, 0.35), transparent 55%),
+        radial-gradient(900px 800px at 50% 115%, rgba(46, 125, 70, 0.25), transparent 60%),
+        linear-gradient(160deg, #dfe9db 0%, var(--color-mist) 55%, #d9e6d3 100%);
+    background-attachment: fixed;
+}
+
+.glass {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+.glass-strong {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.range-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 0.9rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-moss);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.range-btn:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.range-btn[aria-pressed='true'] {
+    background: var(--color-leaf-600);
+    color: #fff;
+}
+
+.range-icon {
+    padding: 0;
+    width: 44px;
+}
+
+.retry-btn {
+    min-height: 44px;
+    padding: 0 1.1rem;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.retry-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.pump-on {
+    background: rgba(254, 243, 199, 0.75);
+    border-color: rgba(180, 83, 9, 0.4);
+}
+
+.pump-on #pumpDot {
+    background: #b45309;
+}
+
+.pump-on #pumpNow {
+    color: #92400e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+.dark body {
+    background:
+        radial-gradient(1100px 550px at 12% -8%, rgba(46, 110, 60, 0.5), transparent 60%),
+        radial-gradient(1000px 700px at 108% 18%, rgba(30, 80, 50, 0.45), transparent 55%),
+        radial-gradient(900px 800px at 50% 115%, rgba(20, 60, 38, 0.5), transparent 60%),
+        linear-gradient(160deg, #0e1512 0%, #111915 55%, #0d1411 100%);
+}
+
+.dark .glass {
+    background: rgba(22, 32, 26, 0.6);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dark .glass-strong {
+    background: rgba(22, 32, 26, 0.78);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.dark .range-btn {
+    color: #b9cec0;
+}
+
+.dark .range-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .retry-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #e9f1ea;
+}
+
+.dark .retry-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.dark .pump-on {
+    background: rgba(120, 72, 10, 0.4);
+    border-color: rgba(240, 176, 50, 0.45);
+}
+
+.dark .pump-on #pumpNow {
+    color: #f5c86e;
+}
+
+.dark .pump-on #pumpDot {
+    background: #f0a832;
+}
+
+.zone-dry {
+    color: #92400e;
+}
+
+section[aria-label='Nilai terkini'] p {
+    font-variant-numeric: tabular-nums;
+}
+
+.dark .zone-dry {
+    color: #f0b35c;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(46, 125, 70, 0.45) transparent;
+}
+
+.dark * {
+    scrollbar-color: rgba(143, 214, 148, 0.4) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: rgba(46, 125, 70, 0.35);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+    background: rgba(143, 214, 148, 0.35);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
 }
