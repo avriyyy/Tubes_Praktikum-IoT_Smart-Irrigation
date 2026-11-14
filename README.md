@@ -1,4 +1,4 @@
-# Petani Pintar — Smart Irrigation Tanaman Cabai Rawit Berbasis IoT
+# Petani Pintar - Smart Irrigation Tanaman Cabai Rawit Berbasis IoT
 
 Tugas Besar Praktikum Sistem Internet of Things. Satu prototipe ini dipakai untuk luaran beberapa mata kuliah sekaligus: Praktikum Sistem Internet of Things, Mata Kuliah Internet of Things, Sistem Kendali, Smart Farming & Aquakultur, serta dashboard web berbasis Laravel pada Pemrograman Web.
 
@@ -57,8 +57,8 @@ Pompa air 5V dicatu dari sumber 5V eksternal melalui kontak COM–NO relay, sehi
 │   └── img/
 │       ├── diagram-blok_progress1.png
 │       └── flowchart_progress1.png
-├── firmware/                     # sketch ESP32 (menyusul, progress 2)
-└── dashboard/                    # dashboard web Laravel (menyusul)
+├── firmware/
+└── dashboard/
 ```
 
 ## Tautan proyek
