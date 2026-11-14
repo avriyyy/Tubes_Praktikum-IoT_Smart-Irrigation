@@ -68,5 +68,5 @@ Pompa air 5V dicatu dari sumber 5V eksternal melalui kontak COM–NO relay, sehi
 ## Status
 
 - [x] Progress 1: konsep, diagram blok + flowchart, laporan
-- [ ] Progress 2: skematik, firmware ESP32, MQTT + PostgreSQL
+- [x] Progress 2: skematik, firmware ESP32, MQTT + PostgreSQL
 - [ ] Final: rakit fisik, dashboard web Laravel, notifikasi Telegram, demo

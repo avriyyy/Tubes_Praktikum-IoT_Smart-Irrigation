@@ -16,6 +16,7 @@
                 <p class="text-sm text-moss dark:text-emerald-100/70">Smart Irrigation Tanaman Cabai</p>
             </div>
             <p id="deviceBadge" class="rounded-full bg-leaf-100/80 px-2.5 py-1 text-xs font-medium text-leaf-700 dark:bg-emerald-400/15 dark:text-emerald-300">Perangkat: …</p>
+            <p id="espBadge" class="rounded-full bg-leaf-100/80 px-2.5 py-1 text-xs font-medium text-leaf-700 dark:bg-emerald-400/15 dark:text-emerald-300"><span id="espDot" class="mr-1 inline-block h-2 w-2 rounded-full esp-dot-off"></span>ESP <span id="espState">Offline</span></p>
             <div class="ml-auto flex flex-wrap items-center gap-1" role="group" aria-label="Rentang waktu grafik">
                 <button type="button" data-minutes="15" aria-pressed="false" class="range-btn">15 menit</button>
                 <button type="button" data-minutes="60" aria-pressed="false" class="range-btn">1 jam</button>

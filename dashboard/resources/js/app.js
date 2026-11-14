@@ -2,7 +2,7 @@ import Chart from 'chart.js/auto';
 
 const LATEST_MS = 5000;
 const HISTORY_MS = 60000;
-const STALE_MS = 5 * 60 * 1000;
+const STALE_MS = 60 * 1000;
 const RING_C = 314.159;
 
 const PALETTES = {
@@ -53,6 +53,12 @@ function setStatus(text) {
     $('statusLine').textContent = text;
 }
 
+function setEspStatus(online) {
+    $('espDot').className = 'mr-1 inline-block h-2 w-2 rounded-full ' + (online ? 'esp-dot-on' : 'esp-dot-off');
+    $('espState').textContent = online ? 'Online' : 'Offline';
+    $('dataSections').classList.toggle('is-stale', !online);
+}
+
 function show(name) {
     $('dataSections').classList.toggle('hidden', name !== 'data');
     $('emptyState').classList.toggle('hidden', name !== 'empty');
@@ -90,6 +96,7 @@ function renderLatest(d) {
         }
         setStatus('Belum ada data.');
         show('empty');
+        setEspStatus(false);
 
         return;
     }
@@ -110,12 +117,17 @@ function renderLatest(d) {
     $('pumpTime').textContent = d.pompa_at ? fmtTime(d.pompa_at) : '–';
 
     const pumpKnown = d.pompa !== null && d.pompa !== undefined;
-    $('pumpCard').classList.toggle('pump-on', pumpKnown && d.pompa);
     $('pumpNow').textContent = !pumpKnown ? '–' : (d.pompa ? 'Menyala' : 'Mati');
 
     const stamps = [d.soil_at, d.pompa_at, d.vpd_at].filter(Boolean).map((t) => new Date(t).getTime());
     const newest = stamps.length ? Math.max(...stamps) : null;
     const age = newest ? Date.now() - newest : null;
+    const online = newest !== null && Date.now() - newest <= STALE_MS;
+    setEspStatus(online);
+    $('pumpCard').classList.toggle('pump-on', pumpKnown && d.pompa && online);
+    if (!online && d.pompa_at) {
+        $('pumpTime').textContent = fmtTime(d.pompa_at) + ' · data terakhir';
+    }
     if (age === null || age > STALE_MS) {
         const mins = age === null ? null : Math.floor(age / 60000);
         setStatus(mins === null ? 'Belum ada data.' : 'Data terakhir ' + mins + ' menit lalu, periksa ESP.');

@@ -166,6 +166,26 @@ section[aria-label='Nilai terkini'] p {
     font-variant-numeric: tabular-nums;
 }
 
+#espDot.esp-dot-on {
+    background: #2e7d46;
+}
+
+#espDot.esp-dot-off {
+    background: #8a8580;
+}
+
+.dark #espDot.esp-dot-on {
+    background: #7fd6a4;
+}
+
+.dark #espDot.esp-dot-off {
+    background: #78716c;
+}
+
+#dataSections.is-stale article {
+    opacity: 0.72;
+}
+
 .dark .zone-dry {
     color: #f0b35c;
 }

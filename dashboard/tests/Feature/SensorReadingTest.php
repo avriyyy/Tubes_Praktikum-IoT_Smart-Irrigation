@@ -75,7 +75,7 @@ test('history endpoint accepts a minutes window', function () {
 });
 
 test('dashboard page loads', function () {
-    $this->withoutVite()->get('/')->assertOk()->assertSee('Dashboard Monitoring')->assertSee('Durasi siram')->assertSee('themeToggle');
+    $this->withoutVite()->get('/')->assertOk()->assertSee('Dashboard Monitoring')->assertSee('Durasi siram')->assertSee('themeToggle')->assertSee('espState');
 });
 
 test('clamps future sensor timestamps to arrival time', function () {
