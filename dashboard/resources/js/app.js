@@ -40,10 +40,11 @@ const state = { minutes: 1440, label: '24 jam', charts: {}, rows: null, latest: 
 
 const $ = (id) => document.getElementById(id);
 
-const fmtClock = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-const fmtShort = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' });
-const fmtLong = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-const fmtHour = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit' });
+const WIB = 'Asia/Jakarta';
+const fmtClock = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: WIB });
+const fmtShort = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: WIB });
+const fmtLong = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: WIB });
+const fmtHour = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: WIB });
 
 const fmtLabel = (iso) => (state.minutes <= 1440 ? fmtShort : fmtLong).format(new Date(iso));
 const fmtTime = (iso) => fmtClock.format(new Date(iso));
@@ -98,7 +99,7 @@ function renderLatest(d) {
     $('soilVerdict').textContent = verdict(d.soil);
     $('soilVerdict').classList.toggle('zone-dry', d.soil !== null && d.soil !== undefined && d.soil < 60);
     $('soilRing').setAttribute('stroke-dashoffset', d.soil === null || d.soil === undefined ? RING_C : (RING_C * (1 - Math.min(Math.max(d.soil, 0), 100) / 100)).toFixed(1));
-    $('soilRingImg').setAttribute('aria-label', 'Lingkaran kelembaban tanah, ' + (d.soil ?? 'tidak ada') + ' persen.');
+    $('soilRingImg').setAttribute('aria-label', 'Lingkaran kelembapan tanah, ' + (d.soil ?? 'tidak ada') + ' persen.');
     $('soilRingTime').textContent = d.soil_at ? fmtTime(d.soil_at) : '–';
     $('suhuNow').textContent = d.suhu ?? '–';
     $('rhNow').textContent = d.rh ?? '–';
@@ -194,7 +195,7 @@ function paintCharts(rows) {
             datasets: [
                 { data: flat(70), borderColor: LEAF, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, showInLegend: false },
                 { data: flat(60), borderColor: AMBER, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: '-1', backgroundColor: BAND, showInLegend: false },
-                { label: 'Kelembaban tanah (%)', data: soil, borderColor: CLAY, borderWidth: 2, pointRadius: 0, tension: 0.25 },
+                { label: 'Kelembapan tanah (%)', data: soil, borderColor: CLAY, borderWidth: 2, pointRadius: 0, tension: 0.25 },
             ],
         },
         options: {
@@ -273,7 +274,7 @@ function paintCharts(rows) {
     });
 
     const last = (arr) => [...arr].reverse().find((v) => v !== null && v !== undefined);
-    $('soilChart').setAttribute('aria-label', 'Grafik kelembaban tanah ' + state.label + ' terakhir, nilai terakhir ' + (last(soil) ?? 'tidak ada') + ' persen.');
+    $('soilChart').setAttribute('aria-label', 'Grafik kelembapan tanah ' + state.label + ' terakhir, nilai terakhir ' + (last(soil) ?? 'tidak ada') + ' persen.');
     $('climateChart').setAttribute('aria-label', 'Grafik suhu dan kelembapan udara ' + state.label + ' terakhir.');
     $('vpdChart').setAttribute('aria-label', 'Grafik VPD ' + state.label + ' terakhir, nilai terakhir ' + (last(vpd) ?? 'tidak ada') + ' kPa.');
     $('irrigChart').setAttribute('aria-label', 'Grafik durasi siram per jam ' + state.label + ' terakhir, total ' + irrig.total.toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' menit.');

@@ -44,7 +44,7 @@
             <section aria-label="Nilai terkini" class="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-5">
                 <article class="glass col-span-2 flex flex-col items-center rounded-3xl p-4 xl:col-span-1">
                     <h2 class="text-sm font-medium text-moss dark:text-emerald-100/70">Status</h2>
-                    <div class="relative mt-2 flex h-24 w-24 items-center justify-center" role="img" id="soilRingImg" aria-label="Lingkaran kelembaban tanah">
+                    <div class="relative mt-2 flex h-24 w-24 items-center justify-center" role="img" id="soilRingImg" aria-label="Lingkaran kelembapan tanah">
                         <svg class="h-full w-full" viewBox="0 0 120 120" aria-hidden="true">
                             <circle class="stroke-pine/10 dark:stroke-white/15" stroke-width="10" cx="60" cy="60" r="50" fill="transparent"></circle>
                             <circle id="soilRing" class="origin-center -rotate-90 text-leaf-600 dark:text-emerald-400" stroke="currentColor" stroke-width="10" stroke-linecap="round" cx="60" cy="60" r="50" fill="transparent" stroke-dasharray="314.159" stroke-dashoffset="314.159"></circle>
@@ -81,9 +81,9 @@
 
             <section aria-label="Grafik timeseries" class="mt-4 grid gap-4">
                 <article class="glass rounded-[2rem] p-5">
-                    <h2 class="text-lg font-semibold tracking-tight">Kelembaban tanah</h2>
+                    <h2 class="text-lg font-semibold tracking-tight">Kelembapan tanah</h2>
                     <div class="relative mt-4 h-64">
-                        <canvas id="soilChart" role="img" aria-label="Grafik kelembaban tanah"></canvas>
+                        <canvas id="soilChart" role="img" aria-label="Grafik kelembapan tanah"></canvas>
                     </div>
                     <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">Garis putus: mulai siram di bawah 60%, berhenti pada 70%.</p>
                 </article>
