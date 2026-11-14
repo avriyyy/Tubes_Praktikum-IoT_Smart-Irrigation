@@ -89,6 +89,18 @@ test('dashboard page loads', function () {
     $this->withoutVite()->get('/')->assertOk()->assertSee('Dashboard Monitoring')->assertSee('Durasi siram')->assertSee('<html lang="id" class="dark">', false)->assertSee('espState')->assertDontSee('themeToggle', false);
 });
 
+test('empty state shows dev commands only when debugging', function () {
+    config(['app.debug' => true]);
+
+    $this->withoutVite()->get('/')->assertOk()->assertSee('php artisan mqtt:consume', false);
+
+    config(['app.debug' => false]);
+
+    $this->withoutVite()->get('/')->assertOk()
+        ->assertSee('muat ulang halaman ini')
+        ->assertDontSee('php artisan', false);
+});
+
 test('clamps future sensor timestamps to arrival time', function () {
     Event::fake();
 

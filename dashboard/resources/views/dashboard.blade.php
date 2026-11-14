@@ -34,7 +34,11 @@
 
         <div id="emptyState" class="glass mt-4 hidden rounded-[2rem] p-6">
             <h2 class="text-lg font-semibold">Belum ada data.</h2>
-            <p class="mt-1 text-sm text-moss dark:text-emerald-100/70">Nyalakan ESP, pastikan ia mengirim ke broker, lalu dari folder dashboard jalankan consumer <code class="rounded bg-white/70 px-1 py-0.5 text-[13px] text-pine dark:bg-white/10 dark:text-emerald-50">php artisan mqtt:consume</code> dan server realtime <code class="rounded bg-white/70 px-1 py-0.5 text-[13px] text-pine dark:bg-white/10 dark:text-emerald-50">php artisan reverb:start</code>.</p>
+            @if (config('app.debug'))
+                <p class="mt-1 text-sm text-moss dark:text-emerald-100/70">Nyalakan ESP, pastikan ia mengirim ke broker, lalu dari folder dashboard jalankan consumer <code class="rounded bg-white/70 px-1 py-0.5 text-[13px] text-pine dark:bg-white/10 dark:text-emerald-50">php artisan mqtt:consume</code> dan server realtime <code class="rounded bg-white/70 px-1 py-0.5 text-[13px] text-pine dark:bg-white/10 dark:text-emerald-50">php artisan reverb:start</code>.</p>
+            @else
+                <p class="mt-1 text-sm text-moss dark:text-emerald-100/70">Nyalakan perangkat ESP dan pastikan ia terhubung ke jaringan, lalu muat ulang halaman ini.</p>
+            @endif
         </div>
 
         <div id="dataSections" class="hidden">
