@@ -74,8 +74,19 @@ test('history endpoint accepts a minutes window', function () {
         ->and($data['rows'][0]['soil'])->toEqual(61.0);
 });
 
+test('history endpoint accepts a one minute window', function () {
+    SensorReading::create(['soil' => 60.0, 'measured_at' => now()->subMinutes(5)]);
+    SensorReading::create(['soil' => 61.0, 'measured_at' => now()->subSeconds(30)]);
+
+    $data = $this->getJson('/api/readings/history?minutes=1')->assertOk()->json();
+
+    expect($data['minutes'])->toBe(1)
+        ->and($data['count'])->toBe(1)
+        ->and($data['rows'][0]['soil'])->toEqual(61.0);
+});
+
 test('dashboard page loads', function () {
-    $this->withoutVite()->get('/')->assertOk()->assertSee('Dashboard Monitoring')->assertSee('Durasi siram')->assertSee('themeToggle')->assertSee('espState');
+    $this->withoutVite()->get('/')->assertOk()->assertSee('Dashboard Monitoring')->assertSee('Durasi siram')->assertSee('<html lang="id" class="dark">', false)->assertSee('espState')->assertDontSee('themeToggle', false);
 });
 
 test('clamps future sensor timestamps to arrival time', function () {

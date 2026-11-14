@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="color-scheme" content="light dark">
+    <meta name="color-scheme" content="dark">
     <title>Dashboard Monitoring: Smart Irrigation Tanaman Cabai</title>
-    <script>try{if(localStorage.getItem('pp-theme')==='dark'||(!localStorage.getItem('pp-theme')&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen text-pine antialiased dark:text-emerald-50">
@@ -18,15 +17,12 @@
             <p id="deviceBadge" class="rounded-full bg-leaf-100/80 px-2.5 py-1 text-xs font-medium text-leaf-700 dark:bg-emerald-400/15 dark:text-emerald-300">Perangkat: …</p>
             <p id="espBadge" class="rounded-full bg-leaf-100/80 px-2.5 py-1 text-xs font-medium text-leaf-700 dark:bg-emerald-400/15 dark:text-emerald-300"><span id="espDot" class="mr-1 inline-block h-2 w-2 rounded-full esp-dot-off"></span>ESP <span id="espState">Offline</span></p>
             <div class="ml-auto flex flex-wrap items-center gap-1" role="group" aria-label="Rentang waktu grafik">
+                <button type="button" data-minutes="1" aria-pressed="true" class="range-btn">1 menit</button>
                 <button type="button" data-minutes="15" aria-pressed="false" class="range-btn">15 menit</button>
                 <button type="button" data-minutes="60" aria-pressed="false" class="range-btn">1 jam</button>
-                <button type="button" data-minutes="1440" aria-pressed="true" class="range-btn">24 jam</button>
+                <button type="button" data-minutes="1440" aria-pressed="false" class="range-btn">24 jam</button>
                 <button id="refreshButton" type="button" aria-label="Muat ulang sekarang" title="Muat ulang sekarang" class="range-btn range-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3v4h-4"/></svg>
-                </button>
-                <button id="themeToggle" type="button" aria-label="Alihkan mode gelap" title="Alihkan mode gelap" aria-pressed="false" class="range-btn range-icon">
-                    <svg id="iconMoon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13.5A8 8 0 1 1 10.5 4 6.5 6.5 0 0 0 20 13.5z"/></svg>
-                    <svg id="iconSun" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
                 </button>
             </div>
         </header>
@@ -105,7 +101,7 @@
                 <article class="glass rounded-[2rem] p-5">
                     <div class="flex flex-wrap items-baseline justify-between gap-2">
                         <h2 class="text-lg font-semibold tracking-tight">Durasi siram</h2>
-                        <p class="tabular-nums"><span id="irrigTotal" class="text-2xl font-bold">–</span> <span class="text-sm text-moss dark:text-emerald-100/70">mnt</span> <span id="irrigLabel" class="text-xs text-moss dark:text-emerald-100/70">dalam 24 jam</span></p>
+                        <p class="tabular-nums"><span id="irrigTotal" class="text-2xl font-bold">–</span> <span class="text-sm text-moss dark:text-emerald-100/70">mnt</span> <span id="irrigLabel" class="text-xs text-moss dark:text-emerald-100/70">dalam 1 menit</span></p>
                     </div>
                     <div class="relative mt-4 h-48">
                         <canvas id="irrigChart" role="img" aria-label="Grafik durasi siram per jam"></canvas>

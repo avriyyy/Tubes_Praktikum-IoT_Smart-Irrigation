@@ -36,7 +36,7 @@ class ReadingController extends Controller
     public function history(Request $request): JsonResponse
     {
         $minutes = $request->has('minutes')
-            ? min(max($request->integer('minutes'), 5), 10080)
+            ? min(max($request->integer('minutes'), 1), 10080)
             : min(max($request->integer('hours', 24), 1), 168) * 60;
 
         $rows = SensorReading::where('measured_at', '>=', now()->subMinutes($minutes))

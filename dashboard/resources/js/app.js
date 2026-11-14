@@ -36,7 +36,7 @@ Chart.defaults.font.family = "'Instrument Sans', ui-sans-serif, system-ui, sans-
 Chart.defaults.animation = false;
 applyPalette();
 
-const state = { minutes: 1440, label: '24 jam', charts: {}, rows: null, latest: null };
+const state = { minutes: 1, label: '1 menit', charts: {}, rows: null, latest: null };
 
 const $ = (id) => document.getElementById(id);
 
@@ -46,7 +46,15 @@ const fmtShort = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-
 const fmtLong = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: WIB });
 const fmtHour = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: WIB });
 
-const fmtLabel = (iso) => (state.minutes <= 1440 ? fmtShort : fmtLong).format(new Date(iso));
+const fmtSecond = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: WIB });
+const fmtLabel = (iso) => {
+    const d = new Date(iso);
+    if (state.minutes <= 1) {
+        return fmtSecond.format(d);
+    }
+
+    return (state.minutes <= 1440 ? fmtShort : fmtLong).format(d);
+};
 const fmtTime = (iso) => fmtClock.format(new Date(iso));
 
 function setStatus(text) {
@@ -150,6 +158,55 @@ function baseScales(extra) {
     return scales;
 }
 
+// Jeda antar titik lebih dari ini berarti ESP mati: garis diputus,
+// bukan disambung (ESP normal kirim tiap ~5 detik).
+const GAP_MS = 5 * 60 * 1000;
+
+// Skala-x linear (waktu riil) agar jeda offline tampil proporsional.
+function linearScales(extra) {
+    const scales = Object.assign({
+        x: {
+            type: 'linear',
+            ticks: {
+                maxTicksLimit: 8,
+                maxRotation: 0,
+                font: { size: 11 },
+                callback: (v) => fmtLabel(new Date(v).toISOString()),
+            },
+            grid: { color: GRID },
+        },
+    }, extra);
+    for (const key of Object.keys(scales)) {
+        scales[key].border = { display: false };
+    }
+
+    return scales;
+}
+
+// Titik {x, y} per metrik; nilai null dilewati, jeda nyata disisipi
+// titik null sehingga garis terputus jujur (spanGaps tetap mati).
+function seriesPoints(rows, key) {
+    const pts = [];
+    let prevT = null;
+    for (const r of rows) {
+        const t = new Date(r.t).getTime();
+        if (Number.isNaN(t)) {
+            continue;
+        }
+        const v = r[key];
+        if (v === null || v === undefined) {
+            continue;
+        }
+        if (prevT !== null && t - prevT > GAP_MS) {
+            pts.push({ x: (prevT + t) / 2, y: null });
+        }
+        pts.push({ x: t, y: v });
+        prevT = t;
+    }
+
+    return pts;
+}
+
 function makeChart(id, config) {
     if (state.charts[id]) {
         state.charts[id].destroy();
@@ -193,38 +250,43 @@ function renderHistory(d) {
 }
 
 function paintCharts(rows) {
-    const labels = rows.map((r) => fmtLabel(r.t));
-    const soil = rows.map((r) => r.soil);
-    const suhu = rows.map((r) => r.suhu);
-    const rh = rows.map((r) => r.rh);
-    const vpd = rows.map((r) => r.vpd);
-    const flat = (v) => labels.map(() => v);
+    const t0 = new Date(rows[0].t).getTime();
+    const t1 = new Date(rows[rows.length - 1].t).getTime();
+    const span = (v) => [{ x: t0, y: v }, { x: t1, y: v }];
+    const soil = seriesPoints(rows, 'soil');
+    const suhu = seriesPoints(rows, 'suhu');
+    const rh = seriesPoints(rows, 'rh');
+    const vpd = seriesPoints(rows, 'vpd');
+
+    const timeTitle = {
+        title: (items) => (items.length ? fmtLabel(new Date(items[0].parsed.x).toISOString()) : ''),
+    };
 
     makeChart('soilChart', {
         type: 'line',
         data: {
-            labels,
             datasets: [
-                { data: flat(70), borderColor: LEAF, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, showInLegend: false },
-                { data: flat(60), borderColor: AMBER, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: '-1', backgroundColor: BAND, showInLegend: false },
+                { data: span(70), borderColor: LEAF, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, showInLegend: false },
+                { data: span(60), borderColor: AMBER, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: '-1', backgroundColor: BAND, showInLegend: false },
                 { label: 'Kelembapan tanah (%)', data: soil, borderColor: CLAY, borderWidth: 2, pointRadius: 0, tension: 0.25 },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            parsing: false,
+            normalized: true,
             plugins: {
                 legend: { display: false },
-                tooltip: { mode: 'index', intersect: false, filter: (item) => item.dataset.showInLegend !== false },
+                tooltip: { mode: 'nearest', intersect: false, filter: (item) => item.dataset.showInLegend !== false, callbacks: timeTitle },
             },
-            scales: baseScales({ y: { min: 0, max: 100, title: { display: true, text: 'persen (%)' } } }),
+            scales: linearScales({ y: { min: 0, max: 100, title: { display: true, text: 'persen (%)' } } }),
         },
     });
 
     makeChart('climateChart', {
         type: 'line',
         data: {
-            labels,
             datasets: [
                 { label: 'Suhu (°C)', data: suhu, borderColor: CLAY, borderWidth: 2, pointRadius: 0, tension: 0.25, yAxisID: 'y' },
                 { label: 'RH (%)', data: rh, borderColor: LEAF, borderWidth: 2, pointRadius: 0, tension: 0.25, yAxisID: 'y1' },
@@ -233,8 +295,10 @@ function paintCharts(rows) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { tooltip: { mode: 'index', intersect: false } },
-            scales: baseScales({
+            parsing: false,
+            normalized: true,
+            plugins: { tooltip: { mode: 'nearest', intersect: false, callbacks: timeTitle } },
+            scales: linearScales({
                 y: { suggestedMin: 15, suggestedMax: 40, title: { display: true, text: 'derajat (°C)' } },
                 y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: 'persen (%)' } },
             }),
@@ -244,7 +308,6 @@ function paintCharts(rows) {
     makeChart('vpdChart', {
         type: 'line',
         data: {
-            labels,
             datasets: [
                 { label: 'VPD (kPa)', data: vpd, borderColor: LEAF, borderWidth: 2, pointRadius: 0, stepped: true, fill: 'origin', backgroundColor: AREA },
             ],
@@ -252,8 +315,10 @@ function paintCharts(rows) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-            scales: baseScales({ y: { suggestedMin: 0, suggestedMax: 3, title: { display: true, text: 'kPa' } } }),
+            parsing: false,
+            normalized: true,
+            plugins: { legend: { display: false }, tooltip: { mode: 'nearest', intersect: false, callbacks: timeTitle } },
+            scales: linearScales({ y: { suggestedMin: 0, suggestedMax: 3, title: { display: true, text: 'kPa' } } }),
         },
     });
 
@@ -285,7 +350,7 @@ function paintCharts(rows) {
         },
     });
 
-    const last = (arr) => [...arr].reverse().find((v) => v !== null && v !== undefined);
+    const last = (arr) => [...arr].reverse().map((p) => p.y).find((v) => v !== null && v !== undefined);
     $('soilChart').setAttribute('aria-label', 'Grafik kelembapan tanah ' + state.label + ' terakhir, nilai terakhir ' + (last(soil) ?? 'tidak ada') + ' persen.');
     $('climateChart').setAttribute('aria-label', 'Grafik suhu dan kelembapan udara ' + state.label + ' terakhir.');
     $('vpdChart').setAttribute('aria-label', 'Grafik VPD ' + state.label + ' terakhir, nilai terakhir ' + (last(vpd) ?? 'tidak ada') + ' kPa.');
@@ -330,41 +395,6 @@ $('retryButton').addEventListener('click', () => {
     refreshHistory();
     refreshLatest();
 });
-
-function preferredDark() {
-    try {
-        const saved = localStorage.getItem('pp-theme');
-        if (saved) {
-            return saved === 'dark';
-        }
-    } catch {
-        /* fall through to OS preference */
-    }
-
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
-
-function applyTheme(dark) {
-    document.documentElement.classList.toggle('dark', dark);
-    $('themeToggle').setAttribute('aria-pressed', String(dark));
-    $('iconMoon').classList.toggle('hidden', dark);
-    $('iconSun').classList.toggle('hidden', !dark);
-    try {
-        localStorage.setItem('pp-theme', dark ? 'dark' : 'light');
-    } catch {
-        /* keep theme in memory only */
-    }
-    applyPalette();
-    if (lastData && lastData.rows && lastData.rows.length) {
-        renderHistory(lastData);
-    }
-}
-
-$('themeToggle').addEventListener('click', () => {
-    applyTheme(!document.documentElement.classList.contains('dark'));
-});
-
-applyTheme(preferredDark());
 
 function num(value) {
     return value === null || value === undefined || value === '' || Number.isNaN(Number(value)) ? null : Number(value);
