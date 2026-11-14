@@ -12,7 +12,7 @@
 */
 
 return [
-    'host' => env('MQTT_HOST', 'mqtt.apriyudha.my.id'),
+    'host' => env('MQTT_HOST', 'mqtt.avriyyy.my.id'),
     'port' => (int) env('MQTT_PORT', 1883),
     'username' => env('MQTT_USERNAME'),
     'password' => env('MQTT_PASSWORD'),

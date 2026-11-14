@@ -86,6 +86,17 @@ test('clamps future sensor timestamps to arrival time', function () {
     expect(abs(SensorReading::first()->measured_at->diffInSeconds(now())))->toBeLessThan(60);
 });
 
+test('stores offset timestamps as UTC instants', function () {
+    Event::fake();
+
+    app(MqttMessageHandler::class)(config('mqtt.topics.sensor'), '{"soil":50,"ts":"2026-11-14T14:17:00+07:00"}');
+
+    $this->assertDatabaseHas('sensor_readings', [
+        'soil' => 50.0,
+        'measured_at' => '2026-11-14 07:17:00',
+    ]);
+});
+
 test('history endpoint downsamples long windows', function () {
     $rows = [];
     for ($i = 0; $i < 2000; $i++) {

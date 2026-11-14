@@ -111,6 +111,10 @@ class MqttMessageHandler
             return now();
         }
 
+        // Columns are timezone-naive UTC: normalize first, otherwise an
+        // offset-bearing timestamp is stored with its wall time shifted.
+        $parsed = $parsed->copy()->setTimezone(config('app.timezone'));
+
         return $parsed->isAfter(now()->addMinutes(5)) ? now() : $parsed;
     }
 }
