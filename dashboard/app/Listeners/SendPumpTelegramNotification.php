@@ -3,12 +3,14 @@
 namespace App\Listeners;
 
 use App\Events\SensorDataReceived;
+use App\Services\Telegram\TelegramNotifier;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SendPumpTelegramNotification
 {
+    public function __construct(private TelegramNotifier $notifier) {}
+
     /**
      * Handle the event.
      *
@@ -35,13 +37,6 @@ class SendPumpTelegramNotification
      */
     private function notifyIfPumpChanged(SensorDataReceived $event): void
     {
-        $token = config('services.telegram.token');
-        $chatId = config('services.telegram.chat_id');
-
-        if (! is_string($token) || $token === '' || ! is_string($chatId) || $chatId === '') {
-            return;
-        }
-
         $pumpOn = $this->pumpState($event);
 
         if ($pumpOn === null) {
@@ -67,10 +62,7 @@ class SendPumpTelegramNotification
             ? "Pompa nyala. Kelembapan tanah {$soil}%, suhu {$suhu}°C."
             : "Pompa mati. Kelembapan tanah {$soil}%, suhu {$suhu}°C.";
 
-        Http::timeout(5)->post(
-            "https://api.telegram.org/bot{$token}/sendMessage",
-            ['chat_id' => $chatId, 'text' => $text],
-        )->throw();
+        $this->notifier->send($text);
     }
 
     /**

@@ -3,11 +3,11 @@
 namespace App\Services\Telegram;
 
 use App\Models\SensorReading;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class TelegramUpdateHandler
 {
+    public function __construct(private TelegramNotifier $notifier) {}
+
     /**
      * Tangani satu update dari Telegram.
      *
@@ -61,20 +61,7 @@ class TelegramUpdateHandler
      */
     private function reply(string $chatId, string $text): void
     {
-        $token = config('services.telegram.token');
-
-        if (! is_string($token) || $token === '') {
-            return;
-        }
-
-        try {
-            Http::timeout(5)->post(
-                "https://api.telegram.org/bot{$token}/sendMessage",
-                ['chat_id' => $chatId, 'text' => $text],
-            )->throw();
-        } catch (\Throwable $exception) {
-            Log::warning('Balasan Telegram gagal.', ['error' => $exception->getMessage()]);
-        }
+        $this->notifier->send($text, $chatId);
     }
 
     /**
