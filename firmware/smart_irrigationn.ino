@@ -7,47 +7,38 @@
 #include <Adafruit_SSD1306.h>
 
 // ======================= KONFIGURASI =======================
-// WiFi & MQTT (ganti sesuai jaringan/broker Anda)
-const char* WIFI_SSID   = "wle";
-const char* WIFI_PASS   = "pppppppp";
-const char* MQTT_SERVER = "43.134.3.156";
+// WiFi & MQTT 
+const char* WIFI_SSID   = "fh_1ec668";
+const char* WIFI_PASS   = "wlane13997";
+const char* MQTT_SERVER = "mqtt.avriyyy.my.id";
 const uint16_t MQTT_PORT = 1883;
 const char* MQTT_CLIENT_ID = "esp32-smart-irrigation-01";
 const char* DEVICE_ID = "esp32-01";
 
 // Topik MQTT
-const char* MQTT_TOPIC_SENSOR  = "iot/sensor";   
-const char* MQTT_TOPIC_STATUS  = "iot/status";   
-const char* MQTT_TOPIC_KONTROL = "iot/kontrol";  
-const unsigned long PUBLISH_MS = 5000;                    
+const char* MQTT_TOPIC_SENSOR  = "iot/sensor";
+const char* MQTT_TOPIC_STATUS  = "iot/status";
+const unsigned long PUBLISH_MS = 1000;
 
 // Waktu (NTP) untuk timestamp, zona WIB (UTC+7)
 const long GMT_OFFSET_SEC = 7 * 3600;
 
-// Pin (sesuai skema rangkaian)
-#define PIN_SOIL   34   // AOUT soil moisture (ADC1)
-#define PIN_DHT    4    // DATA DHT11
-#define PIN_RELAY  26   // IN relay
-#define PIN_SDA    21   // OLED SDA
-#define PIN_SCL    22   // OLED SCL
+// Pin 
+#define PIN_SOIL   34  
+#define PIN_DHT    4    
+#define PIN_RELAY  26  
+#define PIN_SDA    21   
+#define PIN_SCL    22   
 
 const bool RELAY_ACTIVE_LOW = true;
 
-const int ADC_DRY = 2728;  
-const int ADC_WET = 1005;  
+const int ADC_DRY = 2728;
+const int ADC_WET = 1005;
 const int ADC_SAMPLES = 20;
 
-// Logika kendali
-const float THRESHOLD_ON = 60.0;  // pemicu: < 60% -> PID aktif
-const float SETPOINT     = 70.0;  // target 70%
-const unsigned long PUMP_WINDOW_MS = 10000;  // periode time-proportioning
-const unsigned long LOOP_MS = 1000;          // siklus utama 1 detik
-
-// Parameter PID (perlu di-tuning saat pengujian)
-float Kp = 4.0;
-float Ki = 0.05;
-float Kd = 1.0;
-const float INTEGRAL_MAX = 100.0;  // batas anti-windup (dalam satuan output %)
+const float THRESHOLD_ON  = 60.0;  
+const float THRESHOLD_OFF = 70.0;  
+const unsigned long LOOP_MS = 1000;  
 
 // OLED
 #define SCREEN_W 128
@@ -63,10 +54,7 @@ PubSubClient mqtt(espClient);
 float soilPct = 0, temperature = NAN, humidity = NAN, vpd = NAN;
 int soilRaw = 0;
 
-bool pidActive = false;
 bool pumpOn = false;
-float integral = 0, prevError = 0, pidOutput = 0;
-unsigned long windowStart = 0;
 
 unsigned long lastLoop = 0, lastDht = 0, lastWifiTry = 0, lastMqttTry = 0, lastPublish = 0;
 bool lastPublishedPump = false;
@@ -100,60 +88,20 @@ float calcVPD(float t, float rh) {
 void readDHT() {
   float t = dht.readTemperature();
   float h = dht.readHumidity();
-  if (!isnan(t) && !isnan(h)) {  // simpan hanya jika pembacaan valid
+  if (!isnan(t) && !isnan(h)) {  
     temperature = t;
     humidity = h;
     vpd = calcVPD(t, h);
   }
 }
 
-void resetPID() {
-  pidActive = false;
-  integral = 0;
-  prevError = 0;
-  pidOutput = 0;
-}
-
-// ======================= KENDALI POMPA =======================
-void controlPump(float dt) {
-  // Kelembaban >= setpoint: pompa OFF, PID nonaktif, integral direset
-  if (soilPct >= SETPOINT) {
-    resetPID();
-    setRelay(false);
-    return;
+// ======================= KENDALI POMPA (HISTERISIS) =======================
+void controlPump() {
+  if (soilPct < THRESHOLD_ON) {
+    if (!pumpOn) setRelay(true);       
+  } else if (soilPct >= THRESHOLD_OFF) {
+    if (pumpOn) setRelay(false);       
   }
-
-  // Pemicu: kelembaban < 60% mengaktifkan PID
-  if (soilPct < THRESHOLD_ON && !pidActive) {
-    pidActive = true;
-    integral = 0;
-    prevError = SETPOINT - soilPct;
-    windowStart = millis();
-  }
-
-  if (!pidActive) {  // belum terpicu (60-70% dari kondisi awal)
-    setRelay(false);
-    return;
-  }
-
-  // Hitung PID
-  float error = SETPOINT - soilPct;
-  integral += error * dt;
-  if (Ki > 0) {  // anti-windup: batasi kontribusi integral
-    float iMax = INTEGRAL_MAX / Ki;
-    integral = constrain(integral, -iMax, iMax);
-  }
-  float derivative = (error - prevError) / dt;
-  prevError = error;
-
-  pidOutput = Kp * error + Ki * integral + Kd * derivative;
-  pidOutput = constrain(pidOutput, 0.0f, 100.0f);
-
-  // Time-proportioning: ON selama (output% x 10 detik) di awal tiap jendela
-  unsigned long now = millis();
-  if (now - windowStart >= PUMP_WINDOW_MS) windowStart = now;
-  unsigned long onTime = (unsigned long)(pidOutput / 100.0f * PUMP_WINDOW_MS);
-  setRelay((now - windowStart) < onTime);
 }
 
 // ======================= OLED =======================
@@ -175,10 +123,12 @@ void updateDisplay() {
   if (isnan(vpd)) display.println("--");
   else { display.print(vpd, 2); display.println(" kPa"); }
   display.print("Pompa : ");
-  display.print(pumpOn ? "ON " : "OFF");
-  display.print(" PID ");
-  display.print(pidOutput, 0);
-  display.println("%");
+  display.println(pumpOn ? "ON" : "OFF");
+  display.print("Batas : ");
+  display.print(THRESHOLD_ON, 0);
+  display.print("-");
+  display.print(THRESHOLD_OFF, 0);
+  display.println(" %");
   display.print("WiFi:");
   display.print(WiFi.status() == WL_CONNECTED ? "OK" : "--");
   display.print(" MQTT:");
@@ -199,19 +149,9 @@ void maintainConnections() {
   }
   if (!mqtt.connected() && now - lastMqttTry > 5000) {
     lastMqttTry = now;
-    if (mqtt.connect(MQTT_CLIENT_ID)) mqtt.subscribe(MQTT_TOPIC_KONTROL);
+    mqtt.connect(MQTT_CLIENT_ID);
   }
   mqtt.loop();
-}
-
-// Topik kontrol: standby untuk pengembangan lanjut (hanya dicatat di Serial,belum menggerakkan pompa). 
-// Contoh payload: {"pompa":"on","durasi_detik":60}
-void onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  Serial.print("[kontrol] ");
-  Serial.print(topic);
-  Serial.print(": ");
-  for (unsigned int i = 0; i < length; i++) Serial.print((char)payload[i]);
-  Serial.println();
 }
 
 void publishData() {
@@ -224,6 +164,7 @@ void publishData() {
   if (isnan(humidity))    strcpy(hStr, "null"); else snprintf(hStr, sizeof(hStr), "%.0f", humidity);
   if (isnan(vpd))         strcpy(vStr, "null"); else snprintf(vStr, sizeof(vStr), "%.2f", vpd);
 
+  // timestamp ISO 8601 WIB; "null" jika NTP belum sinkron
   struct tm t;
   if (getLocalTime(&t, 0)) {
     char tmp[24];
@@ -233,12 +174,13 @@ void publishData() {
     strcpy(ts, "null");
   }
 
+  // iot/sensor: data mentah (tanpa VPD)
   snprintf(buf, sizeof(buf),
            "{\"device\":\"%s\",\"soil\":%.1f,\"suhu\":%s,\"rh\":%s,\"pompa\":%d,\"ts\":%s}",
            DEVICE_ID, soilPct, tStr, hStr, pumpOn ? 1 : 0, ts);
   mqtt.publish(MQTT_TOPIC_SENSOR, buf);
 
-  // petanipintar/status: status pompa + VPD hasil hitung
+  // iot/status: status pompa + VPD hasil hitung
   snprintf(buf, sizeof(buf), "{\"pompa\":%d,\"vpd\":%s}", pumpOn ? 1 : 0, vStr);
   mqtt.publish(MQTT_TOPIC_STATUS, buf);
 }
@@ -248,7 +190,7 @@ void setup() {
   Serial.begin(115200);
 
   pinMode(PIN_RELAY, OUTPUT);
-  setRelay(false);  // relay OFF saat mulai
+  setRelay(false);  
 
   analogReadResolution(12);
   analogSetPinAttenuation(PIN_SOIL, ADC_11db);
@@ -273,7 +215,7 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 10000) delay(250);
 
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
-  mqtt.setCallback(onMqttMessage);  // koneksi MQTT dijaga di maintainConnections()
+  // koneksi MQTT dijaga di maintainConnections()
   configTime(GMT_OFFSET_SEC, 0, "pool.ntp.org", "time.google.com");
 
   readDHT();
@@ -285,32 +227,31 @@ void loop() {
 
   unsigned long now = millis();
   if (now - lastLoop < LOOP_MS) return;
-  float dt = (now - lastLoop) / 1000.0f;
   lastLoop = now;
 
   // 1. Baca & konversi soil moisture
   soilRaw = readSoilRaw();
   soilPct = rawToPercent(soilRaw);
 
-  // 2. DHT11 + VPD (hanya monitoring), DHT11 maks ~1 Hz -> baca tiap 2 detik
+  // 2. DHT11 + VPD, baca tiap 2 detik
   if (now - lastDht >= 2000) {
     lastDht = now;
     readDHT();
   }
 
-  // 3. Kendali pompa (PID) -> atur relay
-  controlPump(dt);
+  // 3. Kendali pompa -> atur relay
+  controlPump();
 
   // 4. OLED
   updateDisplay();
 
-  // 5. MQTT (jika terhubung): tiap 5 detik, atau segera saat status pompa berubah
+  // 5. MQTT (jika terhubung): tiap PUBLISH_MS, atau segera saat status pompa berubah
   if (now - lastPublish >= PUBLISH_MS || pumpOn != lastPublishedPump) {
     lastPublish = now;
     lastPublishedPump = pumpOn;
     publishData();
   }
 
-  Serial.printf("soil=%.1f%% (raw %d) T=%.1f RH=%.0f VPD=%.2f pid=%.0f%% pump=%d\n",
-                soilPct, soilRaw, temperature, humidity, vpd, pidOutput, pumpOn);
+  Serial.printf("soil=%.1f%% (raw %d) T=%.1f RH=%.0f VPD=%.2f pump=%d\n",
+                soilPct, soilRaw, temperature, humidity, vpd, pumpOn);
 }
