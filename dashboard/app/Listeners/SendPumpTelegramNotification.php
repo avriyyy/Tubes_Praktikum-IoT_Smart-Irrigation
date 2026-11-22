@@ -64,8 +64,8 @@ class SendPumpTelegramNotification
         $suhu = $this->readableNumber($event->point['suhu'] ?? null);
 
         $text = $pumpOn
-            ? "Pompa ON - kelembapan tanah {$soil}%, suhu {$suhu}°C"
-            : "Pompa OFF - kelembapan tanah {$soil}%, suhu {$suhu}°C";
+            ? "Pompa nyala. Kelembapan tanah {$soil}%, suhu {$suhu}°C."
+            : "Pompa mati. Kelembapan tanah {$soil}%, suhu {$suhu}°C.";
 
         Http::timeout(5)->post(
             "https://api.telegram.org/bot{$token}/sendMessage",

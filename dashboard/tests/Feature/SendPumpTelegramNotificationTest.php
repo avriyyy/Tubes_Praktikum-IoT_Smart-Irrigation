@@ -27,7 +27,7 @@ test('sends a message when the pump turns on', function () {
     Http::assertSent(function ($request) {
         return $request->url() === 'https://api.telegram.org/bottest-token/sendMessage'
             && $request['chat_id'] === '@test-channel'
-            && str_contains($request['text'], 'Pompa ON')
+            && str_contains($request['text'], 'Pompa nyala')
             && str_contains($request['text'], '58%');
     });
 });
@@ -39,7 +39,7 @@ test('sends a message when the pump turns off', function () {
 
     Http::assertSent(function ($request) {
         return $request['chat_id'] === '@test-channel'
-            && str_contains($request['text'], 'Pompa OFF')
+            && str_contains($request['text'], 'Pompa mati')
             && str_contains($request['text'], '71%');
     });
 });
