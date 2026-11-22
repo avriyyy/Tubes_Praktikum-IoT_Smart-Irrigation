@@ -34,7 +34,8 @@ test('answers /status with the latest reading', function () {
             && str_contains($request['text'], 'Status sekarang')
             && str_contains($request['text'], '58%')
             && str_contains($request['text'], '31')
-            && str_contains($request['text'], 'pompa nyala');
+            && str_contains($request['text'], 'pompa nyala')
+            && ! str_contains($request['text'], 'WIB');
     });
 });
 

@@ -53,16 +53,7 @@ class TelegramUpdateHandler
         $pumpRow = SensorReading::whereNotNull('pompa')->latest('measured_at')->first();
         $pumpOn = $pumpRow !== null ? (bool) $pumpRow->pompa : (bool) $reading->pompa;
 
-        $measuredAt = $reading->measured_at->setTimezone('Asia/Jakarta');
-        $minutesAgo = (int) now()->diffInMinutes($measuredAt);
-
-        $text = 'Status sekarang - kelembapan tanah '.$this->readableNumber($reading->soil).'%, suhu '.$this->readableNumber($reading->suhu).'°C, RH '.$this->readableNumber($reading->rh).'%, pompa '.($pumpOn ? 'nyala' : 'mati').'. Data '.$measuredAt->format('H:i').' WIB';
-
-        if ($minutesAgo > 5) {
-            $text .= ' ('.$minutesAgo.' menit lalu)';
-        }
-
-        return $text.'.';
+        return 'Status sekarang - kelembapan tanah '.$this->readableNumber($reading->soil).'%, suhu '.$this->readableNumber($reading->suhu).'°C, RH '.$this->readableNumber($reading->rh).'%, pompa '.($pumpOn ? 'nyala' : 'mati').'.';
     }
 
     /**
