@@ -23,8 +23,8 @@ const unsigned long PUBLISH_MS = 1000;
 // Waktu (NTP) untuk timestamp, zona WIB (UTC+7)
 const long GMT_OFFSET_SEC = 7 * 3600;
 
-// Pin 
-#define PIN_SOIL   34  
+// Pin (sesuai skema rangkaian)
+#define PIN_SOIL   34 
 #define PIN_DHT    4    
 #define PIN_RELAY  26  
 #define PIN_SDA    21   
@@ -36,9 +36,16 @@ const int ADC_DRY = 2728;
 const int ADC_WET = 1005;
 const int ADC_SAMPLES = 20;
 
-const float THRESHOLD_ON  = 60.0;  
-const float THRESHOLD_OFF = 70.0;  
-const unsigned long LOOP_MS = 1000;  
+// Logika kendali
+const float SETPOINT = 70.0;                 // target 70%
+const unsigned long PUMP_WINDOW_MS = 10000;  // periode time-proportioning
+const unsigned long LOOP_MS = 1000;          // siklus utama 1 detik
+
+// Parameter PID 
+float Kp = 4.0;
+float Ki = 0.05;
+float Kd = 1.0;
+const float INTEGRAL_MAX = 100.0;  // batas anti-windup (dalam satuan output %)
 
 // OLED
 #define SCREEN_W 128
@@ -55,6 +62,13 @@ float soilPct = 0, temperature = NAN, humidity = NAN, vpd = NAN;
 int soilRaw = 0;
 
 bool pumpOn = false;
+float integral = 0, prevError = 0, pidOutput = 0;
+unsigned long windowStart = 0;
+
+// TUNING
+bool manualMode = false;
+float manualDuty = 0;           // duty pompa manual (%)
+unsigned long manualEnd = 0;    // pengaman: duty manual otomatis 0 setelah 3 menit
 
 unsigned long lastLoop = 0, lastDht = 0, lastWifiTry = 0, lastMqttTry = 0, lastPublish = 0;
 bool lastPublishedPump = false;
@@ -88,20 +102,78 @@ float calcVPD(float t, float rh) {
 void readDHT() {
   float t = dht.readTemperature();
   float h = dht.readHumidity();
-  if (!isnan(t) && !isnan(h)) {  
+  if (!isnan(t) && !isnan(h)) {  // simpan hanya jika pembacaan valid
     temperature = t;
     humidity = h;
     vpd = calcVPD(t, h);
   }
 }
 
-// ======================= KENDALI POMPA (HISTERISIS) =======================
-void controlPump() {
-  if (soilPct < THRESHOLD_ON) {
-    if (!pumpOn) setRelay(true);       
-  } else if (soilPct >= THRESHOLD_OFF) {
-    if (pumpOn) setRelay(false);       
+void resetPID() {
+  integral = 0;
+  prevError = 0;
+  pidOutput = 0;
+}
+
+// ======================= KENDALI POMPA =======================
+void controlPump(float dt) {
+  // TUNING: mode manual melewati PID
+  if (manualMode) {
+    unsigned long now = millis();
+    if (now > manualEnd) manualDuty = 0;  // pengaman 3 menit
+    pidOutput = manualDuty;
+    if (now - windowStart >= PUMP_WINDOW_MS) windowStart = now;
+    unsigned long onTime = (unsigned long)(pidOutput / 100.0f * PUMP_WINDOW_MS);
+    setRelay((now - windowStart) < onTime);
+    return;
   }
+
+  // Kelembaban >= setpoint: pompa OFF, integral direset
+  if (soilPct >= SETPOINT) {
+    resetPID();
+    prevError = SETPOINT - soilPct;  // hindari lonjakan turunan saat PID aktif kembali
+    windowStart = millis();          // jendela baru dimulai saat PID aktif kembali
+    setRelay(false);
+    return;
+  }
+
+  // Kelembaban < setpoint: PID aktif
+  float error = SETPOINT - soilPct;
+  integral += error * dt;
+  if (Ki > 0) {  // anti-windup: batasi kontribusi integral
+    float iMax = INTEGRAL_MAX / Ki;
+    integral = constrain(integral, -iMax, iMax);
+  }
+  float derivative = (error - prevError) / dt;
+  prevError = error;
+
+  pidOutput = Kp * error + Ki * integral + Kd * derivative;
+  pidOutput = constrain(pidOutput, 0.0f, 100.0f);
+
+  // Time-proportioning: ON selama (output% x 10 detik) di awal tiap jendela
+  unsigned long now = millis();
+  if (now - windowStart >= PUMP_WINDOW_MS) windowStart = now;
+  unsigned long onTime = (unsigned long)(pidOutput / 100.0f * PUMP_WINDOW_MS);
+  setRelay((now - windowStart) < onTime);
+}
+
+
+void handleSerial() {
+  if (!Serial.available()) return;
+  String s = Serial.readStringUntil('\n');
+  s.trim();
+  if (s.startsWith("kp=")) Kp = s.substring(3).toFloat();
+  else if (s.startsWith("ki=")) Ki = s.substring(3).toFloat();
+  else if (s.startsWith("kd=")) Kd = s.substring(3).toFloat();
+  else if (s.startsWith("u")) {
+    manualMode = true;
+    manualDuty = constrain(s.substring(1).toFloat(), 0.0f, 100.0f);
+    manualEnd = millis() + 180000UL;
+    windowStart = millis();
+  }
+  else if (s == "auto") { manualMode = false; resetPID(); }
+  Serial.printf("[cmd] Kp=%.3f Ki=%.4f Kd=%.3f manual=%d duty=%.0f\n",
+                Kp, Ki, Kd, manualMode, manualDuty);
 }
 
 // ======================= OLED =======================
@@ -123,12 +195,10 @@ void updateDisplay() {
   if (isnan(vpd)) display.println("--");
   else { display.print(vpd, 2); display.println(" kPa"); }
   display.print("Pompa : ");
-  display.println(pumpOn ? "ON" : "OFF");
-  display.print("Batas : ");
-  display.print(THRESHOLD_ON, 0);
-  display.print("-");
-  display.print(THRESHOLD_OFF, 0);
-  display.println(" %");
+  display.print(pumpOn ? "ON " : "OFF");
+  display.print(" PID ");
+  display.print(pidOutput, 0);
+  display.println("%");
   display.print("WiFi:");
   display.print(WiFi.status() == WL_CONNECTED ? "OK" : "--");
   display.print(" MQTT:");
@@ -174,13 +244,12 @@ void publishData() {
     strcpy(ts, "null");
   }
 
-  // iot/sensor: data mentah (tanpa VPD)
   snprintf(buf, sizeof(buf),
            "{\"device\":\"%s\",\"soil\":%.1f,\"suhu\":%s,\"rh\":%s,\"pompa\":%d,\"ts\":%s}",
            DEVICE_ID, soilPct, tStr, hStr, pumpOn ? 1 : 0, ts);
   mqtt.publish(MQTT_TOPIC_SENSOR, buf);
 
-  // iot/status: status pompa + VPD hasil hitung
+  
   snprintf(buf, sizeof(buf), "{\"pompa\":%d,\"vpd\":%s}", pumpOn ? 1 : 0, vStr);
   mqtt.publish(MQTT_TOPIC_STATUS, buf);
 }
@@ -189,8 +258,8 @@ void publishData() {
 void setup() {
   Serial.begin(115200);
 
-  pinMode(PIN_RELAY, OUTPUT);
-  setRelay(false);  
+  digitalWrite(PIN_RELAY, HIGH);  
+  setRelay(false); 
 
   analogReadResolution(12);
   analogSetPinAttenuation(PIN_SOIL, ADC_11db);
@@ -223,24 +292,26 @@ void setup() {
 }
 
 void loop() {
-  maintainConnections();  // tidak memblokir; sistem tetap jalan tanpa jaringan
+  handleSerial();         
+  maintainConnections();  
 
   unsigned long now = millis();
   if (now - lastLoop < LOOP_MS) return;
+  float dt = (now - lastLoop) / 1000.0f;
   lastLoop = now;
 
   // 1. Baca & konversi soil moisture
   soilRaw = readSoilRaw();
   soilPct = rawToPercent(soilRaw);
 
-  // 2. DHT11 + VPD, baca tiap 2 detik
+  // 2. DHT11 + VPD (hanya monitoring), DHT11 maks ~1 Hz -> baca tiap 2 detik
   if (now - lastDht >= 2000) {
     lastDht = now;
     readDHT();
   }
 
-  // 3. Kendali pompa -> atur relay
-  controlPump();
+  // 3. Kendali pompa (PID) -> atur relay
+  controlPump(dt);
 
   // 4. OLED
   updateDisplay();
@@ -252,6 +323,6 @@ void loop() {
     publishData();
   }
 
-  Serial.printf("soil=%.1f%% (raw %d) T=%.1f RH=%.0f VPD=%.2f pump=%d\n",
-                soilPct, soilRaw, temperature, humidity, vpd, pumpOn);
+  Serial.printf("soil=%.1f%% (raw %d) T=%.1f RH=%.0f VPD=%.2f pid=%.0f%% pump=%d\n",
+                soilPct, soilRaw, temperature, humidity, vpd, pidOutput, pumpOn);
 }
