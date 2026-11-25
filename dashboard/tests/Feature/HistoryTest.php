@@ -128,3 +128,27 @@ test('history export pairs a status row that arrives before its sensor row', fun
     expect($lines)->toHaveCount(2);
     expect($lines[1])->toContain('74.9')->toContain('0.9');
 });
+
+test('history fills pid error from soil when the esp has not sent one', function () {
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 64.8, 'suhu' => 30.0, 'rh' => 80.0, 'pompa' => true, 'vpd' => 0.9, 'measured_at' => now()]);
+
+    $this->withoutVite()->get('/riwayat')->assertOk()
+        ->assertSee('64,8')
+        ->assertSee('5,2');
+});
+
+test('history keeps the stored pid error when the esp sent one', function () {
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 64.8, 'suhu' => 30.0, 'rh' => 80.0, 'pompa' => true, 'vpd' => 0.9, 'pid_error' => 9.9, 'measured_at' => now()]);
+
+    $this->withoutVite()->get('/riwayat')->assertOk()
+        ->assertSee('9,9')
+        ->assertDontSee('5,2');
+});
+
+test('history export fills pid error from soil when the esp has not sent one', function () {
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 64.8, 'suhu' => 30.0, 'rh' => 80.0, 'pompa' => true, 'vpd' => 0.9, 'measured_at' => now()]);
+
+    $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
+
+    expect($content)->toContain('64.8')->toContain('5.2');
+});

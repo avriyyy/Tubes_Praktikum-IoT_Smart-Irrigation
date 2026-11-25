@@ -111,7 +111,7 @@ class HistoryController extends Controller
             $row->pompa === null ? '' : ($row->pompa ? 1 : 0),
             $row->vpd,
             $row->pid_output,
-            $row->pid_error,
+            $row->pidErrorValue(),
         ]);
     }
 

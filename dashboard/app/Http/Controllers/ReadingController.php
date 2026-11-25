@@ -58,7 +58,7 @@ class ReadingController extends Controller
             'ki' => (float) config('pid.ki'),
             'kd' => (float) config('pid.kd'),
             'active' => $sensor?->soil !== null && $sensor->soil < $setpoint,
-            'error' => $sensor?->soil !== null ? round($setpoint - $sensor->soil, 1) : null,
+            'error' => $sensor?->pidErrorValue(),
             'output' => $outputRow?->pid_output,
             'output_at' => $outputRow?->measured_at?->toIso8601String(),
         ];
@@ -93,7 +93,7 @@ class ReadingController extends Controller
                 'pompa' => $row->pompa,
                 'vpd' => $row->vpd,
                 'pid_output' => $row->pid_output,
-                'pid_error' => $row->pid_error,
+                'pid_error' => $row->pidErrorValue(),
             ]),
         ]);
     }

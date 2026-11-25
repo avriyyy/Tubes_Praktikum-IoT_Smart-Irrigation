@@ -64,7 +64,7 @@
                                 <td class="py-2 pr-3">{{ $row->pompa === null ? '–' : ($row->pompa ? 'Nyala' : 'Mati') }}</td>
                                 <td class="py-2 pr-3">{{ $row->vpd !== null ? number_format($row->vpd, 2, ',', '.') : '–' }}</td>
                                 <td class="py-2 pr-3">{{ $row->pid_output !== null ? number_format($row->pid_output, 0, ',', '.') : '–' }}</td>
-                                <td class="py-2">{{ $row->pid_error !== null ? number_format($row->pid_error, 1, ',', '.') : '–' }}</td>
+                                <td class="py-2">{{ $row->pidErrorValue() !== null ? number_format($row->pidErrorValue(), 1, ',', '.') : '–' }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -73,7 +73,7 @@
                     {{ $readings->links() }}
                 </div>
             @endif
-            <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">Output dan error PID baru tercatat setelah firmware ESP diperbarui (25 Nov 2026); data lama menampilkan "–" pada kedua kolom itu.</p>
+            <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">Error PID dihitung dari setpoint 70% dikurangi tanah bila ESP belum mengirim nilainya. Output PID baru terisi setelah firmware ESP diperbarui, sampai saat itu kolomnya menampilkan "–".</p>
         </section>
     </div>
 </body>
