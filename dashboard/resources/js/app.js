@@ -66,7 +66,6 @@ function setEspStatus(online) {
 function show(name) {
     $('dataSections').classList.toggle('hidden', name !== 'data');
     $('emptyState').classList.toggle('hidden', name !== 'empty');
-    $('retryButton').classList.toggle('hidden', name !== 'error');
 }
 
 async function getJSON(url) {
@@ -390,12 +389,6 @@ document.querySelectorAll('[data-minutes]').forEach((btn) => {
 });
 
 $('refreshButton').addEventListener('click', () => {
-    setStatus('Memuat data sensor…');
-    refreshHistory();
-    refreshLatest();
-});
-
-$('retryButton').addEventListener('click', () => {
     setStatus('Memuat data sensor…');
     refreshHistory();
     refreshLatest();

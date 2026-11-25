@@ -29,7 +29,6 @@
 
         <div class="flex flex-wrap items-center gap-3 px-1 pt-4">
             <p id="statusLine" role="status" class="text-sm text-moss dark:text-emerald-100/70">Memuat data sensor…</p>
-            <button id="retryButton" type="button" class="retry-btn hidden">Coba lagi</button>
             <a href="{{ route('riwayat.index') }}" class="retry-btn ml-auto">Riwayat Data</a>
         </div>
 
