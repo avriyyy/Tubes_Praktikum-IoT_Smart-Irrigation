@@ -64,6 +64,8 @@ class MqttMessageHandler
             'rh' => $reading->rh,
             'pompa' => $reading->pompa,
             'vpd' => $reading->vpd,
+            'pid_output' => $reading->pid_output,
+            'pid_error' => $reading->pid_error,
         ];
     }
 
@@ -78,6 +80,8 @@ class MqttMessageHandler
             'suhu' => $this->floatOrNull($payload['suhu'] ?? null),
             'rh' => $this->floatOrNull($payload['rh'] ?? null),
             'pompa' => array_key_exists('pompa', $payload) ? (bool) $payload['pompa'] : null,
+            'pid_output' => $this->floatOrNull($payload['pid'] ?? $payload['pid_output'] ?? null),
+            'pid_error' => $this->floatOrNull($payload['err'] ?? $payload['pid_error'] ?? null),
             'measured_at' => $this->measuredAt($payload['ts'] ?? null),
         ]);
     }

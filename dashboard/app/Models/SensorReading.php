@@ -13,6 +13,8 @@ class SensorReading extends Model
         'rh',
         'pompa',
         'vpd',
+        'pid_output',
+        'pid_error',
         'measured_at',
     ];
 
@@ -27,6 +29,8 @@ class SensorReading extends Model
             'rh' => 'float',
             'pompa' => 'boolean',
             'vpd' => 'float',
+            'pid_output' => 'float',
+            'pid_error' => 'float',
             'measured_at' => 'datetime',
         ];
     }

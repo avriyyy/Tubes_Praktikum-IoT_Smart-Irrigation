@@ -131,3 +131,70 @@ test('history endpoint downsamples long windows', function () {
 
     expect($data['count'])->toBeLessThanOrEqual(1500);
 });
+
+test('stores pid values from a sensor payload', function () {
+    Event::fake();
+
+    app(MqttMessageHandler::class)(
+        config('mqtt.topics.sensor'),
+        '{"device":"esp32-01","soil":55.0,"suhu":28.0,"rh":80,"pompa":1,"pid":60,"err":15.0,"ts":"2026-11-25T12:00:00+07:00"}'
+    );
+
+    $this->assertDatabaseHas('sensor_readings', [
+        'device' => 'esp32-01',
+        'soil' => 55.0,
+        'pid_output' => 60.0,
+        'pid_error' => 15.0,
+    ]);
+});
+
+test('latest endpoint returns pid state from stored rows', function () {
+    SensorReading::create(['soil' => 55.0, 'pid_output' => 60.0, 'pid_error' => 15.0, 'measured_at' => now()->subMinutes(5)]);
+    SensorReading::create(['soil' => 65.0, 'measured_at' => now()]);
+
+    $data = $this->getJson('/api/readings/latest')->assertOk()->json();
+
+    expect($data['pid']['setpoint'])->toEqual(70.0)
+        ->and($data['pid']['kp'])->toEqual(4.0)
+        ->and($data['pid']['ki'])->toEqual(0.05)
+        ->and($data['pid']['kd'])->toEqual(1.0)
+        ->and($data['pid']['active'])->toBeTrue()
+        ->and($data['pid']['error'])->toEqual(5.0)
+        ->and($data['pid']['output'])->toEqual(60.0);
+});
+
+test('latest endpoint reports pid active whenever soil is below setpoint', function () {
+    SensorReading::create(['soil' => 65.0, 'measured_at' => now()]);
+
+    $data = $this->getJson('/api/readings/latest')->assertOk()->json();
+
+    expect($data['pid']['active'])->toBeTrue()
+        ->and($data['pid']['error'])->toEqual(5.0);
+});
+
+test('latest endpoint reports pid inactive once soil reaches setpoint', function () {
+    SensorReading::create(['soil' => 55.0, 'measured_at' => now()->subMinutes(10)]);
+    SensorReading::create(['soil' => 71.0, 'measured_at' => now()]);
+
+    $data = $this->getJson('/api/readings/latest')->assertOk()->json();
+
+    expect($data['pid']['active'])->toBeFalse()
+        ->and($data['pid']['error'])->toEqual(-1.0)
+        ->and($data['pid']['output'])->toBeNull();
+});
+
+test('history endpoint includes pid columns', function () {
+    SensorReading::create(['soil' => 55.0, 'pid_output' => 60.0, 'pid_error' => 15.0, 'measured_at' => now()]);
+
+    $data = $this->getJson('/api/readings/history?minutes=15')->assertOk()->json();
+
+    expect($data['rows'][0]['pid_output'])->toEqual(60.0)
+        ->and($data['rows'][0]['pid_error'])->toEqual(15.0);
+});
+
+test('dashboard page shows pid section and history link', function () {
+    $this->withoutVite()->get('/')->assertOk()
+        ->assertSee('Kendali PID')
+        ->assertSee('Riwayat Data')
+        ->assertSee('Kp');
+});
