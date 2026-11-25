@@ -152,3 +152,17 @@ test('history export fills pid error from soil when the esp has not sent one', f
 
     expect($content)->toContain('64.8')->toContain('5.2');
 });
+
+test('history merges pid values from the status twin into the sensor row', function () {
+    $at = now()->subMinutes(5);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.6, 'suhu' => 28.1, 'rh' => 87.0, 'pompa' => false, 'measured_at' => $at]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.49, 'pid_output' => 63.0, 'pid_error' => -4.6, 'measured_at' => $at->copy()->addSecond()]);
+
+    $this->withoutVite()->get('/riwayat')->assertOk()
+        ->assertSee('63')
+        ->assertSee('-4,6');
+
+    $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
+
+    expect($content)->toContain('74.6')->toContain('0.49')->toContain('63')->toContain('-4.6');
+});

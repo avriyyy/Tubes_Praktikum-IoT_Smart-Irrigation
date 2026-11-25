@@ -198,3 +198,19 @@ test('dashboard page shows pid section and history link', function () {
         ->assertSee('Riwayat Data')
         ->assertSee('Kp');
 });
+
+test('stores pid values from a status payload', function () {
+    Event::fake();
+
+    app(MqttMessageHandler::class)(
+        config('mqtt.topics.status'),
+        '{"pompa":0,"vpd":0.49,"pid_output":42.0,"pid_error":-4.6}'
+    );
+
+    $this->assertDatabaseHas('sensor_readings', [
+        'pompa' => false,
+        'vpd' => 0.49,
+        'pid_output' => 42.0,
+        'pid_error' => -4.6,
+    ]);
+});

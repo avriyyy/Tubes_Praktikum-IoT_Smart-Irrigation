@@ -9,7 +9,7 @@ use Carbon\Carbon;
  * Menggabungkan baris sensor dan status menjadi satu baris per pengukuran.
  *
  * ESP mengirim dua pesan MQTT per pengukuran: iot/sensor (device, tanah,
- * suhu, RH, pompa) dan iot/status (pompa, VPD). Keduanya tersimpan sebagai
+ * suhu, RH, pompa) dan iot/status (pompa, VPD, output dan error PID). Keduanya tersimpan sebagai
  * baris terpisah, dan urutannya tidak selalu berselang-seling rapi: pesan
  * kadang tiba berkelompok (beberapa baris sensor dulu, baru baris status
  * beberapa detik kemudian), atau baris status bisa tiba duluan (jam ESP

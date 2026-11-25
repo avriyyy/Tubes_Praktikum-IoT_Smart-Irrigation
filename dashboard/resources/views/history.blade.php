@@ -73,7 +73,7 @@
                     {{ $readings->links() }}
                 </div>
             @endif
-            <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">Error PID dihitung dari setpoint 70% dikurangi tanah bila ESP belum mengirim nilainya. Output PID baru terisi setelah firmware ESP diperbarui, sampai saat itu kolomnya menampilkan "–".</p>
+            <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">Output PID tampil bila ESP mengirimnya. Error PID dihitung dari setpoint 70% dikurangi tanah bila ESP belum mengirim nilainya.</p>
         </section>
     </div>
 </body>

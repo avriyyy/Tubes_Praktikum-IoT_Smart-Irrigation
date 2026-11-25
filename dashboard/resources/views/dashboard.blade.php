@@ -114,7 +114,7 @@
                             <p class="mt-1 tabular-nums"><span class="text-2xl font-semibold tracking-tight">{{ number_format(config('pid.kd'), 1, ',', '.') }}</span></p>
                         </div>
                     </div>
-                    <p id="pidNote" class="mt-3 text-xs text-moss dark:text-emerald-100/70">Output PID tampil setelah firmware ESP diperbarui; data lama menampilkan "–".</p>
+                    <p id="pidNote" class="mt-3 text-xs text-moss dark:text-emerald-100/70">Output PID tampil bila ESP mengirim nilainya; data lama menampilkan "–".</p>
                 </article>
             </section>
 
