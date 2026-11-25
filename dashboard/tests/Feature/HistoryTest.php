@@ -50,3 +50,41 @@ test('history export ignores rows outside the capped 31 day range', function () 
     $response->assertOk();
     expect($response->streamedContent())->not->toContain('esp32-tua');
 });
+
+test('history page merges a sensor row with its status twin', function () {
+    $at = now()->subMinutes(5);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.9, 'suhu' => 30.0, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSecond()]);
+
+    $this->withoutVite()->get('/riwayat')->assertOk()
+        ->assertSee('74,9')
+        ->assertSee('0,90');
+});
+
+test('history export merges sensor and status rows into one line', function () {
+    $at = now()->subMinutes(5);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.9, 'suhu' => 30.0, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSecond()]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSeconds(2)]);
+
+    $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
+    $lines = array_values(array_filter(explode("\n", trim($content))));
+
+    expect($lines)->toHaveCount(2);
+    expect($lines[1])->toContain('74.9')->toContain('0.9');
+});
+
+test('history export keeps every sensor row', function () {
+    $at = now()->subMinutes(5);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.9, 'suhu' => 30.0, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSecond()]);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.4, 'suhu' => 30.2, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at->copy()->addSeconds(4)]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.92, 'measured_at' => $at->copy()->addSeconds(5)]);
+
+    $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
+    $lines = array_values(array_filter(explode("\n", trim($content))));
+
+    expect($lines)->toHaveCount(3);
+    expect($lines[1])->toContain('74.9')->toContain('0.9');
+    expect($lines[2])->toContain('74.4')->toContain('0.92');
+});

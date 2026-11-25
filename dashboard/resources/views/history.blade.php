@@ -32,11 +32,11 @@
                 </div>
                 <button type="submit" class="range-btn">Tampilkan</button>
             </form>
-            <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">{{ number_format($total, 0, ',', '.') }} baris pada {{ \Carbon\Carbon::parse($from, 'Asia/Jakarta')->isoFormat('D MMM YYYY') }} sampai {{ \Carbon\Carbon::parse($to, 'Asia/Jakarta')->isoFormat('D MMM YYYY') }} (WIB). CSV berisi kolom yang sama, maksimal 100.000 baris, untuk penelitian dan forecasting.</p>
+            <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">{{ number_format($total, 0, ',', '.') }} baris tercatat pada {{ \Carbon\Carbon::parse($from, 'Asia/Jakarta')->isoFormat('D MMM YYYY') }} sampai {{ \Carbon\Carbon::parse($to, 'Asia/Jakarta')->isoFormat('D MMM YYYY') }} (WIB). ESP mengirim dua pesan per pengukuran (sensor dan status), jadi baris yang berdekatan digabung jadi satu pengukuran di tabel ini. CSV berisi kolom yang sama, maksimal 100.000 baris, untuk penelitian dan forecasting.</p>
         </section>
 
         <section aria-label="Tabel riwayat" class="glass mt-4 overflow-x-auto rounded-[2rem] p-5">
-            @if ($readings->isEmpty())
+            @if ($rows->isEmpty())
                 <p class="text-sm text-moss dark:text-emerald-100/70">Belum ada data pada rentang ini.</p>
             @else
                 <table class="w-full min-w-[720px] text-left text-sm tabular-nums">
@@ -54,7 +54,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($readings as $row)
+                        @foreach ($rows as $row)
                             <tr class="border-b border-pine/5 dark:border-white/5">
                                 <td class="py-2 pr-3 whitespace-nowrap">{{ $row->measured_at->copy()->setTimezone('Asia/Jakarta')->format('d M Y H:i:s') }}</td>
                                 <td class="py-2 pr-3">{{ $row->device ?? '–' }}</td>
