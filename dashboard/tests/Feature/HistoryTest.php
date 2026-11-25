@@ -65,13 +65,26 @@ test('history export merges sensor and status rows into one line', function () {
     $at = now()->subMinutes(5);
     SensorReading::create(['device' => 'esp32-01', 'soil' => 74.9, 'suhu' => 30.0, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at]);
     SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSecond()]);
-    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSeconds(2)]);
 
     $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
     $lines = array_values(array_filter(explode("\n", trim($content))));
 
     expect($lines)->toHaveCount(2);
     expect($lines[1])->toContain('74.9')->toContain('0.9');
+});
+
+test('history export keeps an unmatched status row instead of dropping it', function () {
+    $at = now()->subMinutes(5);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.9, 'suhu' => 30.0, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSecond()]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at->copy()->addSeconds(2)]);
+
+    $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
+    $lines = array_values(array_filter(explode("\n", trim($content))));
+
+    expect($lines)->toHaveCount(3);
+    expect($lines[1])->toContain('74.9')->toContain('0.9');
+    expect($lines[2])->toContain('0.9');
 });
 
 test('history export keeps every sensor row', function () {
@@ -87,4 +100,31 @@ test('history export keeps every sensor row', function () {
     expect($lines)->toHaveCount(3);
     expect($lines[1])->toContain('74.9')->toContain('0.9');
     expect($lines[2])->toContain('74.4')->toContain('0.92');
+});
+
+test('history export pairs status rows with earlier sensor rows when they arrive late', function () {
+    $at = now()->subMinutes(5);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.9, 'suhu' => 30.0, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at]);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.5, 'suhu' => 30.1, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at->copy()->addSecond()]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.94, 'measured_at' => $at->copy()->addSeconds(2)]);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.97, 'measured_at' => $at->copy()->addSeconds(2)]);
+
+    $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
+    $lines = array_values(array_filter(explode("\n", trim($content))));
+
+    expect($lines)->toHaveCount(3);
+    expect($lines[1])->toContain('74.9')->toContain('0.9');
+    expect($lines[2])->toContain('74.5')->toContain('0.9');
+});
+
+test('history export pairs a status row that arrives before its sensor row', function () {
+    $at = now()->subMinutes(5);
+    SensorReading::create(['pompa' => false, 'vpd' => 0.9, 'measured_at' => $at]);
+    SensorReading::create(['device' => 'esp32-01', 'soil' => 74.9, 'suhu' => 30.0, 'rh' => 79.0, 'pompa' => false, 'measured_at' => $at->copy()->addSecond()]);
+
+    $content = $this->get('/riwayat/export')->assertOk()->streamedContent();
+    $lines = array_values(array_filter(explode("\n", trim($content))));
+
+    expect($lines)->toHaveCount(2);
+    expect($lines[1])->toContain('74.9')->toContain('0.9');
 });
