@@ -81,6 +81,9 @@ body {
     font-weight: 500;
     background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.7);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .retry-btn:hover {
