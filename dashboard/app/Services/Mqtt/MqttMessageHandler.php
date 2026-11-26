@@ -64,6 +64,8 @@ class MqttMessageHandler
             'rh' => $reading->rh,
             'pompa' => $reading->pompa,
             'vpd' => $reading->vpd,
+            'pid_output' => $reading->pid_output,
+            'pid_error' => $reading->pid_error,
         ];
     }
 
@@ -78,11 +80,17 @@ class MqttMessageHandler
             'suhu' => $this->floatOrNull($payload['suhu'] ?? null),
             'rh' => $this->floatOrNull($payload['rh'] ?? null),
             'pompa' => array_key_exists('pompa', $payload) ? (bool) $payload['pompa'] : null,
+            'pid_output' => $this->floatOrNull($payload['pid'] ?? $payload['pid_output'] ?? null),
+            'pid_error' => $this->floatOrNull($payload['err'] ?? $payload['pid_error'] ?? null),
             'measured_at' => $this->measuredAt($payload['ts'] ?? null),
         ]);
     }
 
     /**
+     * Status ESP juga membawa nilai PID (pid_output/pid_error) sejak
+     * firmware yang di-flash mengirimnya lewat topik ini; sensor tetap
+     * bisa membawa pid/err seperti sebelumnya, keduanya disimpan.
+     *
      * @param  array<string, mixed>  $payload
      */
     private function storeDeviceStatus(array $payload): SensorReading
@@ -90,6 +98,8 @@ class MqttMessageHandler
         return SensorReading::create([
             'pompa' => array_key_exists('pompa', $payload) ? (bool) $payload['pompa'] : null,
             'vpd' => $this->floatOrNull($payload['vpd'] ?? null),
+            'pid_output' => $this->floatOrNull($payload['pid_output'] ?? $payload['pid'] ?? null),
+            'pid_error' => $this->floatOrNull($payload['pid_error'] ?? $payload['err'] ?? null),
             'measured_at' => now(),
         ]);
     }

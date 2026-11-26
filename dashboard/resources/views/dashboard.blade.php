@@ -29,7 +29,7 @@
 
         <div class="flex flex-wrap items-center gap-3 px-1 pt-4">
             <p id="statusLine" role="status" class="text-sm text-moss dark:text-emerald-100/70">Memuat data sensor…</p>
-            <button id="retryButton" type="button" class="retry-btn hidden">Coba lagi</button>
+            <a href="{{ route('riwayat.index') }}" class="retry-btn ml-auto">Riwayat Data</a>
         </div>
 
         <div id="emptyState" class="glass mt-4 hidden rounded-[2rem] p-6">
@@ -80,13 +80,51 @@
                 </article>
             </section>
 
+            <section aria-label="Kendali PID" class="mt-4">
+                <article class="glass rounded-[2rem] p-5">
+                    <div class="flex flex-wrap items-baseline justify-between gap-2">
+                        <h2 class="text-lg font-semibold tracking-tight">Kendali PID</h2>
+                        <p class="text-sm font-medium"><span id="pidActive">–</span></p>
+                    </div>
+                    <p class="mt-1 text-xs text-moss dark:text-emerald-100/70">Pompa dikendalikan PID penuh: aktif selama tanah di bawah setpoint {{ number_format(config('pid.setpoint'), 0, ',', '.') }}%.</p>
+                    <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+                        <div>
+                            <h3 class="text-xs font-medium text-moss dark:text-emerald-100/70">Setpoint</h3>
+                            <p class="mt-1 tabular-nums"><span class="text-2xl font-semibold tracking-tight">{{ number_format(config('pid.setpoint'), 0, ',', '.') }}</span> <span class="text-sm text-moss dark:text-emerald-100/70">%</span></p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-medium text-moss dark:text-emerald-100/70">Error (setpoint - tanah)</h3>
+                            <p class="mt-1 tabular-nums"><span id="pidError" class="text-2xl font-semibold tracking-tight">–</span> <span class="text-sm text-moss dark:text-emerald-100/70">%</span></p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-medium text-moss dark:text-emerald-100/70">Output PID</h3>
+                            <p class="mt-1 tabular-nums"><span id="pidOutput" class="text-2xl font-semibold tracking-tight">–</span> <span class="text-sm text-moss dark:text-emerald-100/70">%</span></p>
+                            <p id="pidOutputTime" class="mt-1 text-xs text-moss dark:text-emerald-100/70">–</p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-medium text-moss dark:text-emerald-100/70">Kp</h3>
+                            <p class="mt-1 tabular-nums"><span class="text-2xl font-semibold tracking-tight">{{ number_format(config('pid.kp'), 1, ',', '.') }}</span></p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-medium text-moss dark:text-emerald-100/70">Ki</h3>
+                            <p class="mt-1 tabular-nums"><span class="text-2xl font-semibold tracking-tight">{{ number_format(config('pid.ki'), 2, ',', '.') }}</span></p>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-medium text-moss dark:text-emerald-100/70">Kd</h3>
+                            <p class="mt-1 tabular-nums"><span class="text-2xl font-semibold tracking-tight">{{ number_format(config('pid.kd'), 1, ',', '.') }}</span></p>
+                        </div>
+                    </div>
+                    <p id="pidNote" class="mt-3 text-xs text-moss dark:text-emerald-100/70">Output PID tampil bila ESP mengirim nilainya; data lama menampilkan "–".</p>
+                </article>
+            </section>
+
             <section aria-label="Grafik timeseries" class="mt-4 grid gap-4">
                 <article class="glass rounded-[2rem] p-5">
                     <h2 class="text-lg font-semibold tracking-tight">Kelembapan tanah</h2>
                     <div class="relative mt-4 h-64">
                         <canvas id="soilChart" role="img" aria-label="Grafik kelembapan tanah"></canvas>
                     </div>
-                    <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">Garis putus: mulai siram di bawah 60%, berhenti pada 70%.</p>
+                    <p class="mt-3 text-xs text-moss dark:text-emerald-100/70">Garis putus: setpoint 70% — pompa berhenti saat tanah mencapai 70%.</p>
                 </article>
                 <div class="grid gap-4 lg:grid-cols-12">
                     <article class="glass rounded-[2rem] p-5 lg:col-span-7">

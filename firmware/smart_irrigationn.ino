@@ -272,9 +272,11 @@ void publishData() {
     strcpy(ts, "null");
   }
 
+  // Nilai PID ikut dikirim supaya dashboard bisa menampilkan output dan
+  // error, serta menyimpannya untuk penelitian/forecasting.
   snprintf(buf, sizeof(buf),
-           "{\"device\":\"%s\",\"soil\":%.1f,\"suhu\":%s,\"rh\":%s,\"pompa\":%d,\"ts\":%s}",
-           DEVICE_ID, soilPct, tStr, hStr, pumpOn ? 1 : 0, ts);
+           "{\"device\":\"%s\",\"soil\":%.1f,\"suhu\":%s,\"rh\":%s,\"pompa\":%d,\"pid\":%.0f,\"err\":%.1f,\"ts\":%s}",
+           DEVICE_ID, soilPct, tStr, hStr, pumpOn ? 1 : 0, pidOutput, SETPOINT - soilPct, ts);
   mqtt.publish(MQTT_TOPIC_SENSOR, buf);
 
   // iot/status: status pompa + VPD + output PID (%) + error PID (%)

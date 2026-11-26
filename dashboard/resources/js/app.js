@@ -6,17 +6,15 @@ const STALE_MS = 60 * 1000;
 const RING_C = 314.159;
 
 const PALETTES = {
-    light: { leaf: '#2e7d46', clay: '#a06a35', amber: '#b45309', idle: '#e3e1dc', tick: '#4c5f53', grid: 'rgba(30, 43, 35, 0.06)', band: 'rgba(46, 125, 70, 0.12)', area: 'rgba(46, 125, 70, 0.10)' },
-    dark: { leaf: '#7fd6a4', clay: '#d29a5b', amber: '#f0a832', idle: '#3a4640', tick: '#9db8a6', grid: 'rgba(255, 255, 255, 0.08)', band: 'rgba(127, 214, 164, 0.20)', area: 'rgba(127, 214, 164, 0.14)' },
+    light: { leaf: '#2e7d46', clay: '#a06a35', idle: '#e3e1dc', tick: '#4c5f53', grid: 'rgba(30, 43, 35, 0.06)', area: 'rgba(46, 125, 70, 0.10)' },
+    dark: { leaf: '#7fd6a4', clay: '#d29a5b', idle: '#3a4640', tick: '#9db8a6', grid: 'rgba(255, 255, 255, 0.08)', area: 'rgba(127, 214, 164, 0.14)' },
 };
 const pal = () => (document.documentElement.classList.contains('dark') ? PALETTES.dark : PALETTES.light);
 
 let LEAF = PALETTES.light.leaf;
 let CLAY = PALETTES.light.clay;
-let AMBER = PALETTES.light.amber;
 let BAR_IDLE = PALETTES.light.idle;
 let GRID = PALETTES.light.grid;
-let BAND = PALETTES.light.band;
 let AREA = PALETTES.light.area;
 let lastData = null;
 
@@ -24,10 +22,8 @@ function applyPalette() {
     const p = pal();
     LEAF = p.leaf;
     CLAY = p.clay;
-    AMBER = p.amber;
     BAR_IDLE = p.idle;
     GRID = p.grid;
-    BAND = p.band;
     AREA = p.area;
     Chart.defaults.color = p.tick;
 }
@@ -70,7 +66,6 @@ function setEspStatus(online) {
 function show(name) {
     $('dataSections').classList.toggle('hidden', name !== 'data');
     $('emptyState').classList.toggle('hidden', name !== 'empty');
-    $('retryButton').classList.toggle('hidden', name !== 'error');
 }
 
 async function getJSON(url) {
@@ -99,7 +94,7 @@ function verdict(soil) {
 function renderLatest(d) {
     state.latest = d.has_data ? d : null;
     if (!d.has_data) {
-        for (const id of ['soilNow', 'suhuNow', 'rhNow', 'vpdNow', 'pumpNow', 'irrigTotal']) {
+        for (const id of ['soilNow', 'suhuNow', 'rhNow', 'vpdNow', 'pumpNow', 'irrigTotal', 'pidError', 'pidOutput', 'pidActive', 'pidOutputTime']) {
             $(id).textContent = '–';
         }
         setStatus('Belum ada data.');
@@ -126,6 +121,16 @@ function renderLatest(d) {
 
     const pumpKnown = d.pompa !== null && d.pompa !== undefined;
     $('pumpNow').textContent = !pumpKnown ? '–' : (d.pompa ? 'Menyala' : 'Mati');
+
+    if (d.pid) {
+        const err = d.pid.error;
+        $('pidError').textContent = err === null || err === undefined ? '–' : (err > 0 ? '+' : '') + err.toLocaleString('id-ID', { maximumFractionDigits: 1 });
+        $('pidOutput').textContent = d.pid.output === null || d.pid.output === undefined ? '–' : d.pid.output.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+        $('pidOutputTime').textContent = d.pid.output_at ? fmtTime(d.pid.output_at) : '–';
+        $('pidActive').textContent = d.pid.active ? 'Aktif' : 'Nonaktif';
+        $('pidActive').classList.toggle('zone-dry', d.pid.active);
+        $('pidNote').classList.toggle('hidden', d.pid.output !== null && d.pid.output !== undefined);
+    }
 
     const stamps = [d.soil_at, d.pompa_at, d.vpd_at].filter(Boolean).map((t) => new Date(t).getTime());
     const newest = stamps.length ? Math.max(...stamps) : null;
@@ -267,7 +272,6 @@ function paintCharts(rows) {
         data: {
             datasets: [
                 { data: span(70), borderColor: LEAF, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, showInLegend: false },
-                { data: span(60), borderColor: AMBER, borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: '-1', backgroundColor: BAND, showInLegend: false },
                 { label: 'Kelembapan tanah (%)', data: soil, borderColor: CLAY, borderWidth: 2, pointRadius: 0, tension: 0.25 },
             ],
         },
@@ -390,12 +394,6 @@ $('refreshButton').addEventListener('click', () => {
     refreshLatest();
 });
 
-$('retryButton').addEventListener('click', () => {
-    setStatus('Memuat data sensor…');
-    refreshHistory();
-    refreshLatest();
-});
-
 function num(value) {
     return value === null || value === undefined || value === '' || Number.isNaN(Number(value)) ? null : Number(value);
 }
@@ -409,6 +407,8 @@ function onLivePoint(point) {
         rh: num(point.rh),
         pompa: point.pompa ?? null,
         vpd: num(point.vpd),
+        pid_output: num(point.pid_output),
+        pid_error: num(point.pid_error),
     };
 
     if (state.latest) {
@@ -435,6 +435,18 @@ function onLivePoint(point) {
         if (row.vpd !== null) {
             live.vpd = row.vpd;
             live.vpd_at = row.t;
+        }
+        if (live.pid) {
+            if (row.pid_output !== null) {
+                live.pid.output = row.pid_output;
+                live.pid.output_at = row.t;
+            }
+            if (row.pid_error !== null) {
+                live.pid.error = row.pid_error;
+            }
+            if (row.soil !== null) {
+                live.pid.active = row.soil < live.pid.setpoint;
+            }
         }
         renderLatest(live);
     } else {

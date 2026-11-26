@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SensorReading;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ReadingController extends Controller
 {
@@ -19,6 +20,8 @@ class ReadingController extends Controller
             return response()->json(['has_data' => false]);
         }
 
+        $pid = $this->pidState($recent);
+
         return response()->json([
             'has_data' => true,
             'device' => $sensor?->device,
@@ -30,7 +33,35 @@ class ReadingController extends Controller
             'pompa_at' => $pompa?->measured_at?->toIso8601String(),
             'vpd' => $status?->vpd,
             'vpd_at' => $status?->measured_at?->toIso8601String(),
+            'pid' => $pid,
         ]);
+    }
+
+    /**
+     * Status kendali PID dari data tersimpan, mengikuti logika firmware:
+     * PID aktif selama tanah < setpoint; nonaktif saat tanah >= setpoint.
+     * Output PID hanya terisi kalau firmware sudah mengirimnya.
+     *
+     * @param  Collection<int, SensorReading>  $recent
+     * @return array<string, mixed>
+     */
+    private function pidState($recent): array
+    {
+        $setpoint = (float) config('pid.setpoint');
+
+        $sensor = $recent->first(fn (SensorReading $row) => $row->soil !== null);
+        $outputRow = $recent->first(fn (SensorReading $row) => $row->pid_output !== null);
+
+        return [
+            'setpoint' => $setpoint,
+            'kp' => (float) config('pid.kp'),
+            'ki' => (float) config('pid.ki'),
+            'kd' => (float) config('pid.kd'),
+            'active' => $sensor?->soil !== null && $sensor->soil < $setpoint,
+            'error' => $sensor?->pidErrorValue(),
+            'output' => $outputRow?->pid_output,
+            'output_at' => $outputRow?->measured_at?->toIso8601String(),
+        ];
     }
 
     public function history(Request $request): JsonResponse
@@ -42,7 +73,7 @@ class ReadingController extends Controller
         $rows = SensorReading::where('measured_at', '>=', now()->subMinutes($minutes))
             ->orderBy('measured_at')
             ->limit(150000)
-            ->get(['device', 'soil', 'suhu', 'rh', 'pompa', 'vpd', 'measured_at']);
+            ->get(['device', 'soil', 'suhu', 'rh', 'pompa', 'vpd', 'pid_output', 'pid_error', 'measured_at']);
 
         $stride = (int) ceil($rows->count() / 1500);
         $sampled = $stride > 1
@@ -61,6 +92,8 @@ class ReadingController extends Controller
                 'rh' => $row->rh,
                 'pompa' => $row->pompa,
                 'vpd' => $row->vpd,
+                'pid_output' => $row->pid_output,
+                'pid_error' => $row->pidErrorValue(),
             ]),
         ]);
     }

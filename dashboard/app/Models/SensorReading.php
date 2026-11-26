@@ -13,6 +13,8 @@ class SensorReading extends Model
         'rh',
         'pompa',
         'vpd',
+        'pid_output',
+        'pid_error',
         'measured_at',
     ];
 
@@ -27,7 +29,27 @@ class SensorReading extends Model
             'rh' => 'float',
             'pompa' => 'boolean',
             'vpd' => 'float',
+            'pid_output' => 'float',
+            'pid_error' => 'float',
             'measured_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Error PID (setpoint - tanah), sama seperti yang dikirim firmware.
+     * Bila ESP belum mengirim nilainya (firmware lama), hitung dari tanah
+     * supaya kolom Error PID di riwayat selalu terisi.
+     */
+    public function pidErrorValue(): ?float
+    {
+        if ($this->pid_error !== null) {
+            return $this->pid_error;
+        }
+
+        if ($this->soil === null) {
+            return null;
+        }
+
+        return round((float) config('pid.setpoint') - $this->soil, 1);
     }
 }
