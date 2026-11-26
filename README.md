@@ -30,7 +30,7 @@ Sistem terdiri dari empat lapis: (1) perangkat keras di lapangan (ESP32, sensor,
 
 ## Flowchart
 
-![Flowchart cara kerja sistem](docs/img/flowchart_progress1.png)
+![Flowchart cara kerja sistem](docs/img/flowchart.jpeg)
 
 *Gambar 2. Flowchart cara kerja sistem.*
 
